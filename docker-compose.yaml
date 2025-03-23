@@ -2,23 +2,33 @@ version: '3'
 
 services:
 
-  gateway:
-    container_name: restaurant-gateway
-    build: ./restaurant-gateway
+  traefik:
+    image: traefik:latest
+    container_name: traefik
     ports:
+      - "80:80"
       - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./traefic.yaml:/etc/traefik/traefik.yaml 
+      - ./dynamic.yaml:/etc/traefik/dynamic.yaml
     
-
-  user:
-    container_name: user-service
-    build: ./user-service
+  auth:
+    container_name: restorio-auth
+    build: ./restorio-auth
     ports:
       - "8081:8081"
     depends_on:
       - postgres
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/postgres
-    
+      SECRET_ACCESS: BcU8q58BtgWzIZ7KfjuQgf9YIEIbh8d/Y2EGPuh8Ui4=
+      SECRET_REFRESH: cM4hNZ9z6uS49Q7Uo8Z7I0TvGYoJaCOhWwuY6U9D7QY=
+
+      DB_HOST: postgres
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: postgres
+      DB_PORT: 5432
 
   postgres:
     container_name: postgres
