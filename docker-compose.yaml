@@ -24,12 +24,15 @@ services:
       SECRET_ACCESS: BcU8q58BtgWzIZ7KfjuQgf9YIEIbh8d/Y2EGPuh8Ui4=
       SECRET_REFRESH: cM4hNZ9z6uS49Q7Uo8Z7I0TvGYoJaCOhWwuY6U9D7QY=
       POSTGRES_CONFIG: host=postgres user=postgres password=postgres dbname=postgres port=5432 sslmode=disable
-
-      DB_HOST: postgres
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-      DB_NAME: postgres
-      DB_PORT: 5432
+  
+  telegram:
+    container_name: restorio-telegram
+    build: ./restorio-telegram
+    depends_on:
+      - postgres
+    environment:
+      BOT_TOKEN: 8082597348:AAGnqiXFaY7z6MsJQOGb3Mk8TcFRCwNkWqA
+      POSTGRES_CONFIG: host=postgres user=postgres password=postgres dbname=postgres port=5432 sslmode=disable
 
   postgres:
     container_name: postgres
