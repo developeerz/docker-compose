@@ -36,4 +36,4 @@ jobs:
       - name: Build and Run Docker Compose
         working-directory: docker-compose-repo
         run: |
-          docker-compose up -d --build
+          docker compose up -d --build
