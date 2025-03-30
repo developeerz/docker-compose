@@ -5,35 +5,35 @@ on:
     branches:
       - main
   repository_dispatch:
-    types: [trigger-from-app1, trigger-from-app2] 
+    types: [trigger-from-restorio-gateway, trigger-from-restorio-auth, trigger-from-frontend] 
 
 jobs:
   build-and-run:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout docker-compose-repo
+      - name: Checkout docker-compose
         uses: actions/checkout@v4
         with:
-          path: docker-compose-repo
+          path: docker-compose
 
-      - name: Checkout app1
+      - name: Checkout restorio-gateway
         uses: actions/checkout@v4
         with:
           repository: developeerz/restorio-gateway
-          path: docker-compose-repo/restorio-gateway
+          path: docker-compose/restorio-gateway
           token: ${{ secrets.ORG_TOKEN }}
 
-      - name: Checkout app2
+      - name: Checkout restorio-auth
         uses: actions/checkout@v4
         with:
           repository: developeerz/restorio-auth
-          path: docker-compose-repo/restorio-auth
+          path: docker-compose/restorio-auth
           token: ${{ secrets.ORG_TOKEN }} 
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Build and Run Docker Compose
-        working-directory: docker-compose-repo
+        working-directory: docker-compose
         run: |
           docker compose up -d --build
