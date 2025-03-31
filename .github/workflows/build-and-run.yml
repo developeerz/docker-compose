@@ -5,7 +5,7 @@ on:
     branches:
       - main
   repository_dispatch:
-    types: [trigger-from-restorio-gateway, trigger-from-restorio-auth, trigger-from-frontend] 
+    types: [trigger-from-restorio-gateway, trigger-from-restorio-auth, trigger-from-frontend, trigger-from-telegram] 
 
 jobs:
   build-and-run:
