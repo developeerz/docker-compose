@@ -45,6 +45,21 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      
+  frontend:
+    build:
+      context: ./frontend/react_front
+      dockerfile: Dockerfile
+    volumes:
+      - ./frontend/react_front:/app
+      - /app/node_modules
+    ports:
+      - "8082:8081"  
+      - "19000:19000"  
+      - "19001:19001"  
+    environment:
+      - NODE_ENV=development
+    command: npm start
 
 
 volumes:
