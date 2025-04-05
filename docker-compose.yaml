@@ -2,9 +2,9 @@ version: '3'
 
 services:
 
-  traefik:
+  gateway:
     image: traefik:latest
-    container_name: traefik
+    container_name: restorio-gateway
     ports:
       - "80:80"
       - "8080:8080"
@@ -55,6 +55,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       
   frontend:
+    container_name: restorio-frontend
     build:
       context: ./frontend/react_front
       dockerfile: Dockerfile
