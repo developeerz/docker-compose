@@ -20,6 +20,7 @@ services:
       - "8081:8081"
     depends_on:
       - postgres
+    restart: on-failure
     environment:
       SECRET_ACCESS: BcU8q58BtgWzIZ7KfjuQgf9YIEIbh8d/Y2EGPuh8Ui4=
       SECRET_REFRESH: cM4hNZ9z6uS49Q7Uo8Z7I0TvGYoJaCOhWwuY6U9D7QY=
@@ -34,6 +35,7 @@ services:
     build: ./restorio-telegram
     depends_on:
       - postgres
+    restart: on-failure
     environment:
       BOT_TOKEN: 8082597348:AAGnqiXFaY7z6MsJQOGb3Mk8TcFRCwNkWqA
       DB_HOST: postgres
