@@ -77,7 +77,7 @@ services:
     build:
       context: restorio-logs/elasticsearch/
     volumes:
-      - ./restorio-logs/elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro,Z
+      - ./restorio-logs/elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
     ports:
       - 9200:9200
       - 9300:9300
@@ -85,6 +85,23 @@ services:
       node.name: elasticsearch
       discovery.type: single-node
       xpack.security.enabled: false
+
+  logstash:
+    container_name: logstash
+    build:
+      context: restorio-logs/logstash/
+    volumes:
+      - ./restorio-logs/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml
+      - ./restorio-logs/logstash/pipeline:/usr/share/logstach/pipeline
+    ports:
+      - 5044:5044
+      - 50000:50000/tcp
+      - 50000:50000/udp
+      - 9600:9600
+    environment:
+      LOG_LEVEL: debug
+    depends_on:
+      - elasticsearch
 
 volumes:
   postgres_data:
