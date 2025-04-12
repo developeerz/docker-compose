@@ -72,6 +72,19 @@ services:
       - NODE_ENV=development
     command: npm start
 
+  elasticsearch:
+    container_name: elasticsearch
+    build:
+      context: restorio-logs/elasticsearch/
+    volumes:
+      - ./restorio-logs/elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro,Z
+    ports:
+      - 9200:9200
+      - 9300:9300
+    environment:
+      node.name: elasticsearch
+      discovery.type: single-node
+      xpack.security.enabled: false
 
 volumes:
   postgres_data:
