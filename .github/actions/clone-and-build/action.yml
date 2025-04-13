@@ -57,7 +57,7 @@ runs:
       run: |
         if [ -f "$COMPOSE_FILE" ]; then
           echo "Building services from $COMPOSE_FILE"
-          docker-compose -f "$COMPOSE_FILE" build
+          docker compose -f "$COMPOSE_FILE" build
         else
           echo "Error: $COMPOSE_FILE not found"
           exit 1
