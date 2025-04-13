@@ -70,6 +70,7 @@ services:
     build:
       context: ./frontend/react_front
       dockerfile: Dockerfile
+    image: ghcr.io/developeerz/frontend/restotio-frontend:latest
     volumes:
       - ./frontend/react_front:/app
       - /app/node_modules

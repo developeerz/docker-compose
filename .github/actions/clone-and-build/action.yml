@@ -1,0 +1,64 @@
+name: 'Clone Repositories and Build'
+description: 'Clones multiple repositories and builds Docker Compose services'
+inputs:
+  repo-list:
+    description: 'Comma-separated list of repository URLs to clone'
+    required: true
+  checkout-path:
+    description: 'Directory where repositories will be cloned'
+    default: './repos'
+    required: false
+  compose-file:
+    description: 'Path to docker-compose.yml file'
+    default: 'docker-compose.yml'
+    required: false
+  github-token:
+    description: 'GitHub token for authenticating private repositories'
+    required: false
+runs:
+  using: 'composite'
+  steps:
+    - name: Configure Git
+      shell: bash
+      run: |
+        git config --global user.email "actions@github.com"
+        git config --global user.name "GitHub Actions"
+
+    - name: Authenticate GitHub
+      if: ${{ inputs.github-token != '' }}
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      run: |
+        echo "https://${{ github.actor }}:$GITHUB_TOKEN@github.com" > ~/.git-credentials
+        git config --global credential.helper store
+
+    - name: Clone Repositories
+      shell: bash
+      env:
+        REPO_LIST: ${{ inputs.repo-list }}
+        CHECKOUT_PATH: ${{ inputs.checkout-path }}
+      run: |
+        IFS=',' read -ra REPOS <<< "$REPO_LIST"
+        mkdir -p "$CHECKOUT_PATH"
+        for repo in "${REPOS[@]}"; do
+          repo_name=$(basename "$repo" .git)
+          echo "Cloning $repo to $CHECKOUT_PATH/$repo_name"
+          git clone "$repo" "$CHECKOUT_PATH/$repo_name"
+        done
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build Docker Compose Services
+      shell: bash
+      env:
+        COMPOSE_FILE: ${{ inputs.compose-file }}
+      run: |
+        if [ -f "$COMPOSE_FILE" ]; then
+          echo "Building services from $COMPOSE_FILE"
+          docker-compose -f "$COMPOSE_FILE" build
+        else
+          echo "Error: $COMPOSE_FILE not found"
+          exit 1
+        fi
