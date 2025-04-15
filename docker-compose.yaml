@@ -25,8 +25,11 @@ services:
       postgres:
         condition: service_healthy
     environment:
+      SERVICE_NAME: restorio-auth
+
       SECRET_ACCESS: BcU8q58BtgWzIZ7KfjuQgf9YIEIbh8d/Y2EGPuh8Ui4=
       SECRET_REFRESH: cM4hNZ9z6uS49Q7Uo8Z7I0TvGYoJaCOhWwuY6U9D7QY=
+
       DB_HOST: postgres
       DB_USER: postgres
       DB_PASSWORD: postgres
@@ -66,7 +69,13 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-      
+  
+  redis:
+    image: redis
+    container_name: redis
+    ports:
+      - "6379:6379"
+
   frontend:
     container_name: restorio-frontend
     build:
