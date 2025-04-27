@@ -65,6 +65,10 @@ jobs:
         working-directory: docker-compose
         run: |
           docker compose up -d --build
+
+      - name: Copy prop
+        run: |
+          mv docker-compose/sonar-project.properties sonar-project.properties
           
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@master
