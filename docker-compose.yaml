@@ -24,6 +24,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       SERVICE_NAME: restorio-auth
 
@@ -45,8 +47,13 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
+      SERVICE_NAME: restorio-telegram
+      
       BOT_TOKEN: 8082597348:AAGnqiXFaY7z6MsJQOGb3Mk8TcFRCwNkWqA
+      
       DB_HOST: postgres
       DB_USER: postgres
       DB_PASSWORD: postgres
@@ -66,15 +73,22 @@ services:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
   
   redis:
     image: redis
     container_name: redis
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   frontend:
     container_name: restorio-frontend
@@ -98,15 +112,11 @@ services:
     build:
       context: restorio-logs/elasticsearch/
       dockerfile: Dockerfile
-    volumes:
-      - es-data:/usr/share/elasticsearch/data
     ports:
       - 9200:9200
-      - 9300:9300
     environment:
-      discovery.type: single-node
-      xpack.security.enabled: false
-      ES_JAVA_OPTS: -Xms512m -Xmx512m
+      - discovery.type=single-node
+      - xpack.security.enabled=false
     networks:
       - elk
 
@@ -116,11 +126,11 @@ services:
       context: restorio-logs/logstash/
       dockerfile: Dockerfile
     volumes:
-      - ./restorio-logs/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
-      - ./restorio-logs/logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - ./restorio-logs/logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+    environment:
+      - ELASTICSEARCH_HOSTS=elasticsearch:9200
     ports:
       - 5044:5044
-      - 9600:9600
     depends_on:
       - elasticsearch
     networks:
@@ -131,10 +141,10 @@ services:
     build:
       context: restorio-logs/kibana/
       dockerfile: Dockerfile
-    environment:
-      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
     ports:
       - 5601:5601
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
     depends_on:
       - elasticsearch
     networks:
@@ -145,22 +155,24 @@ services:
     build:
       context: restorio-logs/filebeat/
       dockerfile: Dockerfile
+    user: root
     volumes:
       - ./restorio-logs/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
       - ./restorio-auth/logs:/var/log/restorio-auth:ro
       - ./restorio-telegram/logs:/var/log/restorio-telegram:ro
+    environment:
+      - LOGSTASH_HOSTS=logstash:5044
+      - KIBANA_HOST=kibana:5601
     depends_on:
       - logstash
+      - kibana
     networks:
       - elk
-
-volumes:
-  es-data:
-    driver: local
-
-  postgres_data:
-
+      
 networks:
   elk:
     driver: bridge
 
+volumes:
+  postgres_data:
+  

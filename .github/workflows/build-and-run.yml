@@ -65,3 +65,10 @@ jobs:
         working-directory: docker-compose
         run: |
           docker compose up -d --build
+          
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.ORG_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          
