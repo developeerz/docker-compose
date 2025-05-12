@@ -33,9 +33,9 @@ services:
       SECRET_REFRESH: cM4hNZ9z6uS49Q7Uo8Z7I0TvGYoJaCOhWwuY6U9D7QY=
 
       DB_HOST: postgres
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-      DB_NAME: postgres
+      DB_USER: clients_admin
+      DB_PASSWORD: password
+      DB_NAME: clients
       DB_PORT: 5432
 
   telegram:
@@ -49,20 +49,38 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      kafka:
+        condition: service_healthy
     environment:
-      SERVICE_NAME: restorio-telegram
-      
+      SERVICE_NAME: restorio-telegram   
       BOT_TOKEN: 8082597348:AAGnqiXFaY7z6MsJQOGb3Mk8TcFRCwNkWqA
-      
+      TOPIC: TELEGRAM_TOPIC
+      BROKERS: kafka:9092
+
+  reserving:
+    container_name: restorio-reserving
+    build: ./restorio-reserving
+    volumes:
+      - ./restorio-reserving/logs:/var/log/restorio-reserving
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
       DB_HOST: postgres
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-      DB_NAME: postgres
+      DB_USER: reserving_admin
+      DB_PASSWORD: password
+      DB_NAME: reserving
       DB_PORT: 5432
+      TOPIC: TELEGRAM_TOPIC
+      BROKERS: kafka:9092
+    ports:
+      - "8082:8082"
 
   postgres:
     container_name: postgres
-    image: postgres:15
+    build: ./postgres
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -77,6 +95,7 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+  
   
   redis:
     image: redis
@@ -168,6 +187,61 @@ services:
       - kibana
     networks:
       - elk
+  
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "kafka:9092", "--list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      - zookeeper
+
+  kafka-init:
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on:
+      - kafka
+    entrypoint: ["/bin/sh", "-c"]
+    command: |
+      "kafka-topics --create --topic TELEGRAM_TOPIC --bootstrap-server kafka:9092 --replication-factor 1 --partitions 1;
+       sleep 10"
+
+  reserving-migrate:
+    image: migrate/migrate:v4.15.2
+    container_name: reserving-migrate
+    command: ["-path", "/migrations", "-database", "postgres://reserving_admin:password@postgres:5432/reserving?sslmode=disable", "up"]
+    volumes:
+      - ./restorio-reserving/reserving-service/db/migrations:/migrations
+    depends_on:
+      - postgres
+      - reserving
+  
+  auth-migrate:
+    image: migrate/migrate:v4.15.2
+    container_name: auth-migrate
+    command: ["-path", "/migrations", "-database", "postgres://clients_admin:password@postgres:5432/clients?sslmode=disable", "up"]
+    volumes:
+      - ./restorio-auth/db/migrations:/migrations
+    depends_on:
+      - postgres
+      - auth
       
 networks:
   elk:
