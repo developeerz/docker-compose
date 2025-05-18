@@ -41,4 +41,37 @@ jobs:
           checkout-path: '.'
           compose-file: './docker-compose.yaml'
           run_command: 'true'
-    
+          
+  go_testing:
+    runs-on: ubuntu-latest
+    needs: clone_repos_and_build
+    steps:
+      - name: Checkout Main Repository
+        uses: actions/checkout@v4
+
+      - name: Clone and Build
+        uses: ./.github/actions/clone-and-build
+        with:
+          repo-list: ${{ vars.REPO_LIST }}
+          checkout-path: '.'
+          compose-file: './docker-compose.yaml'
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+      
+      - name: Install dependencies
+        run: cd restorio-auth && go mod download
+        
+      - name: Run tests
+        run: cd restorio-auth && go test -v ./...
+      
+      - name: Run tests with coverage
+        run: cd restorio-auth && go test -v -coverprofile=coverage.out ./...
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: service-coverage-report
+          path: restorio-auth/coverage.out
+          
