@@ -60,6 +60,7 @@ services:
   reserving:
     container_name: restorio-reserving
     build: ./restorio-reserving
+    image: ghcr.io/developeerz/restorio-reserving/restorio-reserving:latest
     volumes:
       - ./restorio-reserving/logs:/var/log/restorio-reserving
     depends_on:
@@ -95,7 +96,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
-  
   
   redis:
     image: redis

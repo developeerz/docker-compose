@@ -1,78 +1,116 @@
-name: Build and Run Docker Compose
+name: Main workflow
 
 on:
-  push:
+  pull_request:
     branches:
       - main
   repository_dispatch:
-    types: [trigger-from-restorio-gateway, trigger-from-restorio-auth, trigger-from-frontend, trigger-from-restorio-telegram, trigger-from-restorio-reserving] 
+    types: [trigger-from-restorio-gateway, trigger-from-restorio-auth, trigger-from-frontend, trigger-from-restorio-telegram, trigger-from-restorio-reserving, trigger-from-restorio-logs, trigger-from-restorio-postgres] 
 
 jobs:
-  build-and-run:
+  sonar_scan:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout docker-compose
+      - name: Checkout Main Repository
         uses: actions/checkout@v4
+
+      - name: Clone repos
+        uses: ./.github/actions/clone-and-build
         with:
-          path: docker-compose
-
-      - name: Checkout restorio-gateway
-        uses: actions/checkout@v4
-        with:
-          repository: developeerz/restorio-gateway
-          path: docker-compose/restorio-gateway
-          token: ${{ secrets.ORG_TOKEN }}
-
-      - name: Checkout restorio-auth
-        uses: actions/checkout@v4
-        with:
-          repository: developeerz/restorio-auth
-          path: docker-compose/restorio-auth
-          token: ${{ secrets.ORG_TOKEN }} 
-
-      - name: Checkout frontend
-        uses: actions/checkout@v4
-        with:
-          repository: developeerz/frontend
-          path: docker-compose/frontend
-          token: ${{ secrets.ORG_TOKEN }} 
-          
-      - name: Checkout restorio-telegram
-        uses: actions/checkout@v4
-        with:
-          repository: developeerz/restorio-telegram
-          path: docker-compose/restorio-telegram
-          token: ${{ secrets.ORG_TOKEN }}
-
-      - name: Checkout restorio-reserving
-        uses: actions/checkout@v4
-        with:
-          repository: developeerz/restorio-reserving
-          path: docker-compose/restorio-reserving
-          token: ${{ secrets.ORG_TOKEN }}
-
-      - name: Checkout restorio-logs
-        uses: actions/checkout@v4
-        with:
-          repository: developeerz/restorio-logs
-          path: docker-compose/restorio-logs
-          token: ${{ secrets.ORG_TOKEN }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and Run Docker Compose
-        working-directory: docker-compose
-        run: |
-          docker compose up -d --build
-
-      - name: Copy prop
-        run: |
-          mv docker-compose/sonar-project.properties sonar-project.properties
+          repo-list: ${{ vars.REPO_LIST }}
+          checkout-path: '.'
+          compose-file: './docker-compose.yaml'
           
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.ORG_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          
+  clone_repos_and_build:
+    runs-on: ubuntu-latest
+    needs: sonar_scan
+    steps:
+      - name: Checkout Main Repository
+        uses: actions/checkout@v4
+
+      - name: Clone and Build
+        uses: ./.github/actions/clone-and-build
+        with:
+          repo-list: ${{ vars.REPO_LIST }}
+          checkout-path: '.'
+          compose-file: './docker-compose.yaml'
+          run_command: 'true'
+          
+  go_testing:
+    runs-on: ubuntu-latest
+    needs: clone_repos_and_build
+    steps:
+      - name: Checkout Main Repository
+        uses: actions/checkout@v4
+
+      - name: Clone Repos
+        uses: ./.github/actions/clone-and-build
+        with:
+          repo-list: ${{ vars.REPO_LIST }}
+          checkout-path: '.'
+          compose-file: './docker-compose.yaml'
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+      
+      - name: Install dependencies
+        run: cd restorio-auth && go mod download
+        
+      - name: Run tests
+        run: cd restorio-auth && go test -v ./...
+      
+      - name: Run tests with coverage
+        run: cd restorio-auth && go test -v -coverprofile=coverage.out ./...
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: auth-coverage-report
+          path: restorio-auth/coverage.out
+          
+  e2e_testing:
+    runs-on: ubuntu-latest
+    needs: go_testing
+    steps:
+      - name: Checkout Main Repository
+        uses: actions/checkout@v4
+
+      - name: Clone Repos
+        uses: ./.github/actions/clone-and-build
+        with:
+          repo-list: ${{ vars.REPO_LIST }}
+          checkout-path: '.'
+          compose-file: './docker-compose.yaml'
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'npm'
+          cache-dependency-path: './frontend/react_front/package-lock.json'
+      
+      - name: Install dependencies
+        working-directory: ./frontend/react_front
+        run: npm ci
+        
+      - name: Install Playwright
+        working-directory: ./frontend/react_front
+        run: npx playwright install --with-deps
+        
+      - name: Run Playwright tests
+        working-directory: ./frontend/react_front
+        run: npx playwright test
+      
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: ./frontend/react_front/playwright-report/
           
