@@ -8,7 +8,7 @@ on:
     types: [trigger-from-restorio-gateway, trigger-from-restorio-auth, trigger-from-frontend, trigger-from-restorio-telegram, trigger-from-restorio-reserving, trigger-from-restorio-logs, trigger-from-restorio-postgres] 
 
 jobs:
-  clone_repos:
+  clone_repos_and_build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Main Repository
@@ -23,20 +23,11 @@ jobs:
   
   sonar_scan:
     runs-on: ubuntu-latest
+    needs: clone_repos_and_build
     steps:
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.ORG_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-  
-  build_proj:
-    runs-on: ubuntu-latest  
-    steps:
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and Run Docker Compose
-        run: |
-          docker compose up -d --build
     
