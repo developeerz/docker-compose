@@ -8,8 +8,29 @@ on:
     types: [trigger-from-restorio-gateway, trigger-from-restorio-auth, trigger-from-frontend, trigger-from-restorio-telegram, trigger-from-restorio-reserving, trigger-from-restorio-logs, trigger-from-restorio-postgres] 
 
 jobs:
+  sonar_scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Main Repository
+        uses: actions/checkout@v4
+
+      - name: Clone repos
+        uses: ./.github/actions/clone-and-build
+        with:
+          repo-list: ${{ vars.REPO_LIST }}
+          checkout-path: '.'
+          compose-file: './docker-compose.yaml'
+          run_command: false
+          
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.ORG_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          
   clone_repos_and_build:
     runs-on: ubuntu-latest
+    needs: sonar_scan
     steps:
       - name: Checkout Main Repository
         uses: actions/checkout@v4
@@ -20,14 +41,5 @@ jobs:
           repo-list: ${{ vars.REPO_LIST }}
           checkout-path: '.'
           compose-file: './docker-compose.yaml'
-  
-  sonar_scan:
-    runs-on: ubuntu-latest
-    needs: clone_repos_and_build
-    steps:
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarqube-scan-action@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.ORG_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          run_command: true
     

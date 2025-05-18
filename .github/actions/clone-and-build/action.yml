@@ -1,4 +1,4 @@
-name: 'Clone Repositories and Build'
+name: 'Clone Repositories and Build if need'
 description: 'Clones multiple repositories and builds Docker Compose services'
 inputs:
   repo-list:
@@ -15,6 +15,10 @@ inputs:
   github-token:
     description: 'GitHub token for authenticating private repositories'
     required: false
+  run_command:
+        description: 'Run the shell command?'
+        type: boolean
+        required: true
 runs:
   using: 'composite'
   steps:
@@ -54,6 +58,7 @@ runs:
       shell: bash
       env:
         COMPOSE_FILE: ${{ inputs.compose-file }}
+      if: ${{ github.event.inputs.run_command == 'true' }}
       run: |
         if [ -f "$COMPOSE_FILE" ]; then
           echo "Building services from $COMPOSE_FILE"
