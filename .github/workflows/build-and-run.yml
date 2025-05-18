@@ -102,7 +102,7 @@ jobs:
         
       - name: Install Playwright
         working-directory: ./frontend/react_front
-        run: npx playwright install
+        run: npx playwright install --with-dep
         
       - name: Run Playwright tests
         working-directory: ./frontend/react_front
