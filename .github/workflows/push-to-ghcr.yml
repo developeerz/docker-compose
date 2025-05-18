@@ -16,6 +16,7 @@ jobs:
           repo-list: ${{ vars.REPO_LIST }}
           checkout-path: '.'
           compose-file: './docker-compose.yaml'
+          run_command: 'true'
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
