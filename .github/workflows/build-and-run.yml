@@ -20,7 +20,6 @@ jobs:
           repo-list: ${{ vars.REPO_LIST }}
           checkout-path: '.'
           compose-file: './docker-compose.yaml'
-          run_command: false
           
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@master
@@ -41,5 +40,5 @@ jobs:
           repo-list: ${{ vars.REPO_LIST }}
           checkout-path: '.'
           compose-file: './docker-compose.yaml'
-          run_command: true
+          run_command: 'true'
     
